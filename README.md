@@ -6,5 +6,7 @@
 	
 ## To-do
 - [ ] [PicoCTF](https://picoctf.com/)
+	- [ ] [PicoCTF 2017](https://picoctf.com/)
+	- [ ] [PicoCTF 2018](https://picoctf.com/)
 - [ ] [Over the wire - Bandit](https://overthewire.org/wargames/bandit/)
 - [ ] [CTF 365](https://ctf365.com/)
