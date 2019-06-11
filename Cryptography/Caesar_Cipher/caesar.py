@@ -1,25 +1,24 @@
-#!/usr/bin/python3
+#!venv/bin/python3
+
+import random
+import pyperclip
 
 # TO-DO
-# 1.Add copypaste support.
 # 2.Add decrypt
-# 3.Add selective crypt
-# 4.Add venv
 # 5.Clean code (change modules)
 # 6.Integrate with bash
-# 7.Choose wether to ignore caps or not
-# 8.Add random key encryption
 
 # Instructions
 print('''Instructions for caesar cipher:
-	1. Insert the text you want to cipher/decipher. (from a to z)
-	2. Select the mode (cipher-decipher), writing it.
+	1. Insert the text you want to encrypt-decrypt (from a to z).
+	2. Select the mode (encrypt-decrypt), writing it.
 	3. Insert the key to apply (if you leave it empty, it will use all possible keys, if you write random, it will choose a random key)
 	4. The translated text will be copied to your clipboard automatically.''')
 
 SYMBOLS = 'abcdefghijklmnopqrstuvwxyz'
 
 def cipher(key=''):
+	global translated
 	translated = ''
 	for symbol in text:
 		if symbol in SYMBOLS:
@@ -54,17 +53,22 @@ else:
 		knownkey = input('Please, write a number from 0 to 25, leave it empty or write ''random'': ')
 
 # Check for the mode.
+
+# If mode is encrypt.
 if mode == 'encrypt':
 	# Check if we know the key or not.
 	if knownkey == '':
 		# If we don't give a key, we cipher the text in everyway possible.
 		for key in range(len(SYMBOLS)):
 			cipher(key=key)
+			pyperclip.copy(translated)
 	# If we give the random command, we choose a random key from 0 to 25.		
 	elif knownkey == 'random':
-		pass
-		##### random function
+		cipher(key=random.randrange(1, 26))
+		pyperclip.copy(translated)
 	else:
 		cipher(key=knownkey)
+		pyperclip.copy(translated)
 else:
 	pass
+	### Here goes the decrypt function
