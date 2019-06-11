@@ -31,13 +31,29 @@ def cipher(key=''):
 			# We finally print the text.
 		else:
 			translated = translated + symbol
-	print(translated + '-----------> with key ' + str(key))
+	print(translated + '	(encrypted ----> with key ' + str(key) + ')')
+
+def decipher(key=''):
+	global translated
+	translated = ''
+	for symbol in text:
+		if symbol in SYMBOLS:
+			index = SYMBOLS.find(symbol) - int(key)
+			# Wrap-around in case we exceed the length of the symbol table and we need to start from the start again.
+			if index < 0:
+				index = index + len(SYMBOLS)
+			# Now we start building up the translated variable.
+			translated = translated + SYMBOLS[index]
+			# We finally print the text.
+		else:
+			translated = translated + symbol
+	print(translated + 'decrypted ----> with key ' + str(key))
 
 #Get variables.
 text = input('Text: ').lower()
 
 # We check that we get a correct mode.
-mode = input('Mode ("encrypt" or "decrypt": ').lower()
+mode = input('Mode ("encrypt" or "decrypt"): ').lower()
 while mode != 'encrypt' and mode != 'decrypt':
 	mode = input('Write "encrypt" or "decrypt": ')
 
@@ -61,7 +77,8 @@ if mode == 'encrypt':
 		# If we don't give a key, we cipher the text in everyway possible.
 		for key in range(len(SYMBOLS)):
 			cipher(key=key)
-			pyperclip.copy(translated)
+
+		#pyperclip.copy(cipher(keytocopy))
 	# If we give the random command, we choose a random key from 0 to 25.		
 	elif knownkey == 'random':
 		cipher(key=random.randrange(1, 26))
@@ -70,5 +87,8 @@ if mode == 'encrypt':
 		cipher(key=knownkey)
 		pyperclip.copy(translated)
 else:
-	pass
-	### Here goes the decrypt function
+	# Check if we know the key or not.
+	if knownkey == '':
+		# If we don't give a key, we try to bruteforce the text.
+		for key in range(len(SYMBOLS)):
+			decipher(key=key)
