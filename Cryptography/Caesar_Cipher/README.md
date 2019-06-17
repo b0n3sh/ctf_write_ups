@@ -1,6 +1,6 @@
 # TODO
 - [x] Add copypaste support.
-- [ ] Add decrypt function.
+- [x] Add decrypt function.
 - [x] Add selective crypt.
 - [x] Add venv.
 - [ ] Clean code (import modules instead of functions inside the main script).
