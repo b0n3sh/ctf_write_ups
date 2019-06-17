@@ -3,11 +3,6 @@
 import random
 import pyperclip
 
-# TO-DO
-# 2.Add decrypt
-# 5.Clean code (change modules)
-# 6.Integrate with bash
-
 # Instructions
 print('''Instructions for caesar cipher:
 	1. Insert the text you want to encrypt-decrypt (from a to z).
@@ -28,13 +23,13 @@ def cipher(key=''):
 				index = index - len(SYMBOLS)
 			# Now we start building up the translated variable.
 			translated = translated + SYMBOLS[index]
-			# We finally print the text.
 		else:
 			translated = translated + symbol
-	output = translated + '	(encrypted ----> with key ' + str(key) + ')'
+	# Now we return the encrypted text.
+	output = f'{translated}	(encrypted ----> with key {str(key)})'
 	return output, translated
 def decipher(key=''):
-	global translated
+	global translated, output
 	translated = ''
 	for symbol in text:
 		if symbol in SYMBOLS:
@@ -47,23 +42,30 @@ def decipher(key=''):
 			# We finally print the text.
 		else:
 			translated = translated + symbol
-	print(translated + 'decrypted ----> with key ' + str(key))
+	output = f'{translated} (decrypted ----> with key {str(key)})'
+	return output, translated
 
-def textlen():
+def textlen(mode):
 	if len(translated) > 5:
-		print(f'The encrypted text, {translated[0:5]}... with the selected key {wantedkey} has been copied to your clipboard!')
+		print(f'\nThe {Mode} text, {translated[0:5]}... with the selected key {wantedkey} has been copied to your clipboard!')
 	else:
-		print(f'The encrypted text, {translated} with the selected key {wantedkey} has been copied to your clipboard!')
+		print(f'\nThe {mode} text, {translated} with the selected key {wantedkey} has been copied to your clipboard!')
+
+def wantedkey():
+	global wantedkey
+	wantedkey = input('\nWhich key you want to copy to your keyboard? (Write the number): ')
+	while int(wantedkey) < 0 and int(wantedkey) > 25:
+		input('Please write a number from 0 to 25: ')
 
 #Get variables.
-text = input('Text: ').lower()
+text = input('\nText: ').lower()
 
 # We check that we get a correct mode.
-mode = input('Mode ("e" for encrypt or "d" for decrypt): ').lower()
+mode = input('\nMode ("e" for encrypt or "d" for decrypt): ').lower()
 while mode != 'e' and mode != 'd':
 	mode = input('Write "e" for encrypt or "d" for decrypt": ')
 
-knownkey = input('Key: ')
+knownkey = input('\nKey: ')
 
 # We check if the known key is a number between 0 to 25.
 if knownkey.isdigit():
@@ -85,25 +87,23 @@ if mode == 'e':
 			cipher(key=key)
 			print(output)
 		# Now we iniciate the method for selecting the desired key to be copied into the clipboard.
-		wantedkey = input('Which key you want to copy to your keyboard? (Write the number): ')
-		while int(wantedkey) < 0 and int(wantedkey) > 25:
-			input('Please write a number from 0 to 25: ')
+		wantedkey()
 		cipher(key=wantedkey)
 		pyperclip.copy(translated)
 		# We shorten the encrypted text to print it.
-		textlen()
+		textlen(mode='encrypted')
 	# If we give the random command, we choose a random key from 0 to 25.		
 	elif knownkey == 'random':
 		wantedkey = random.randrange(1, 26)
 		cipher(key=wantedkey)
 		pyperclip.copy(translated)
-		textlen()
+		textlen(mode='encrypted')
 	# If we give a specific key, we just operate as normal.
 	else:
 		cipher(key=knownkey)
 		pyperclip.copy(translated)
 		wantedkey = knownkey
-		textlen()
+		textlen(mode='encrypted')
 # If mode is decrypt.
 else:
 	# Check if we know the key or not.
@@ -111,3 +111,16 @@ else:
 		# If we don't give a key, we try to bruteforce the text.
 		for key in range(len(SYMBOLS)):
 			decipher(key=key)
+			print(output)
+		# Now we ask the user to know which key was the correct one.
+		wantedkey()
+		decipher(key=wantedkey)
+		pyperclip.copy(translated)
+		textlen(mode='decrypted')
+	# If we know the key, we just decipher it normally.
+	else:
+		decipher(key=knownkey)
+		print(output)
+		pyperclip.copy(translated)
+		wantedkey = knownkey
+		textlen(mode='decrypted')
