@@ -47,7 +47,7 @@ def decipher(key=''):
 
 def textlen(mode):
 	if len(translated) > 5:
-		print(f'\nThe {Mode} text, {translated[0:5]}... with the selected key {wantedkey} has been copied to your clipboard!')
+		print(f'\nThe {mode} text, {translated[0:5]}... with the selected key {wantedkey} has been copied to your clipboard!')
 	else:
 		print(f'\nThe {mode} text, {translated} with the selected key {wantedkey} has been copied to your clipboard!')
 
