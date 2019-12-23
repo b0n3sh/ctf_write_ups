@@ -10,3 +10,4 @@
 	- [ ] [PicoCTF 2018](https://picoctf.com/)
 - [ ] [Over the wire - Bandit](https://overthewire.org/wargames/bandit/)
 - [ ] [CTF 365](https://ctf365.com/)
+- [x] [Google XSS game](https://xss-game.appspot.com/)
