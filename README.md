@@ -11,3 +11,4 @@
 - [ ] [Over the wire - Bandit](https://overthewire.org/wargames/bandit/)
 - [ ] [CTF 365](https://ctf365.com/)
 - [x] [Google XSS game](https://xss-game.appspot.com/)
+- [ ] [WebGoat](https://github.com/WebGoat/WebGoat)
