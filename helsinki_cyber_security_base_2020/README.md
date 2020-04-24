@@ -26,7 +26,7 @@ XOR deciphering
 There's a json called Nothingtoseehere inside the website.
 
 ### Dr. Kyberzig MK II
-todo
+Inspecting the source code, there's the main****.js file, where is has a validator function, we debug it and step into the code, which is validator.js, we take that function and print it as an alert, getting the flag.
 
 ### Password II
 Using strings we get a base 64, `$echo 'flag' | base64 -d`
@@ -45,4 +45,19 @@ Is SHA1, we create a little script to iterate until we find it.
 
 ### Password III
 Overflow with 257 chars and we get the flag.
+
+### Rise of the monkeys
+Just execute the encrypter and input their hashed passwod, weird.
+
+### Cyber crime does pay
+When we transfer from euros to cyber money, the system rounds up only to 2 decimals, so when we move 0.17 euros to cyber money, instead of receiving 0.17*0.03125 = 0.0053125 we get 0.01 cyber money, having a 0.01-0.0053125 = +0.0046875 benefit.
+
+![](http://i.imgur.com/PCHaF95.png)
+
+We create a script to spam requests for converting back money and voila 
+
+![](https://i.imgur.com/6WrxhUx.png)
+
+Now we can buy those secrets
+
 
