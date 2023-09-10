@@ -18,8 +18,7 @@ data=base64.b64decode(params.replace("~", "=").replace("-", "+").replace("!", "/
 data=int.from_bytes(data, byteorder="big")
 data=f"{data:x}"
 print(data)
-blocks= list(map(bytearray.fromhex, [data[i:i+n] for i in range(0, len(data), n)]))
-original_block = copy.deepcopy(blocks)
+original_block = list(map(bytearray.fromhex, [data[i:i+n] for i in range(0, len(data), n)]))
 
 async def padding_correct(response):
     text = await response.text()
@@ -40,7 +39,7 @@ def hex_to_url_b64(dump):
 def blocks_to_dump(blocks):
     return ''.join([f"{int.from_bytes(block, byteorder='big'):032x}" for block in blocks])
 
-def tune_padding(byte_array, block):
+def tune_padding(byte_array, block, blocks):
     padding_length = len(byte_array)
     # n^m=p {n=original ciphered block n-1, m=changed ciphered block n-1 for the padding, p=the padding}
     print(f"\033[36mHave to tune {str(padding_length)} paddings before permutating the current position.\033[0m")
@@ -54,7 +53,8 @@ def tune_padding(byte_array, block):
         blocks[block][16-to_change-1] = original_block[block][16-to_change-1]^original_value^(padding_length+1)
         print(blocks[block][16-to_change-1])
 
-def get_plaintext(byte_position, block, plaintext):
+
+def get_plaintext(byte_position, block, plaintext, blocks):
     # n^m^p = t {n=ciphered original block n-1, m=changed ciphered block n-1 for the correct padding, p=the padding, t=plaintext}
     n = blocks[block][byte_position]
     m = original_block[block][byte_position]
@@ -71,19 +71,15 @@ async def call_oracle(session, domain, payload):
         return await padding_correct(response) 
 
 async def decipher_block(session, block):
-    print("hola")
-    await asyncio.sleep(5)
-    print("bye")
     guesses = bytearray()
     plaintext = bytearray()
+    blocks= list(map(bytearray.fromhex, [data[i:i+n] for i in range(0, len(data), n)]))
 
     for byte_position in reversed(range(16)):
-        # Store original byte from restoring it back later
-        original_byte = blocks[block][byte_position]
         # pre
         if byte_position<15:
             print(guesses)
-            tune_padding(guesses, block)
+            tune_padding(guesses, block, blocks)
         for i in range(256):
             blocks[block][byte_position] = i
             payload=hex_to_url_b64(blocks_to_dump([blocks[block], blocks[block+1]]))
@@ -99,7 +95,7 @@ async def decipher_block(session, block):
                     if await call_oracle(session, domain, payload):
                         print("\033[32m0x01 padding found!\033[0m")
                         guesses.append(i)
-                        get_plaintext(byte_position, block, plaintext)
+                        get_plaintext(byte_position, block, plaintext, blocks)
                         break
                     else:
                         print("\033[35mPossible 0x02...0xFF, not adding the bytes.\033[0m")
@@ -107,12 +103,11 @@ async def decipher_block(session, block):
                     print(f"\033[34mPrevious block back to it's original value ({blocks[block][byte_position-1]})\033[0m")
                 else:  
                     guesses.append(i)
-                    get_plaintext(byte_position, block, plaintext)
+                    get_plaintext(byte_position, block, plaintext, blocks)
                     break
             else:
                 print(f"\033[31mTrying with byte value {hex(blocks[block][byte_position])} ({i}) on the {byte_position}th position of the {block}th block.\033[0m")
         # Restore value of the permuted byte
-        blocks[block][byte_position] = original_byte
     return plaintext
 
 async def main():
@@ -120,10 +115,12 @@ async def main():
         tasks = []
         tasks_done = []
         print("done")
-        for block in reversed(range(1, len(blocks)-2)):
+        for block in reversed(range(1, len(original_block)-1)):
             tasks.append(asyncio.ensure_future(decipher_block(session, block)))
         tasks_done = await asyncio.gather(*tasks)  
+        flag = []
         for result in tasks_done:
-            print(result)
-
+            flag.append(result[::-1]) 
+            print(result[::-1])
+        print(b"".join(flag[::-1]))
 asyncio.run(main())
